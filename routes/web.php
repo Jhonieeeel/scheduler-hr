@@ -1,0 +1,23 @@
+<?php
+
+use App\Http\Controllers\BalanceController;
+use App\Http\Controllers\EventController;
+use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
+
+Route::inertia('/', 'welcome', [
+    'canRegister' => Features::enabled(Features::registration()),
+])->name('home');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    // balance - event
+    Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
+    Route::get('balance/{user}', [BalanceController::class, 'show'])->name('balance.show');
+
+    // leave - event
+    Route::get('leave', [EventController::class, 'index'])->name('leave.index');
+});
+
+require __DIR__.'/settings.php';
