@@ -10,14 +10,26 @@ use Inertia\Inertia;
 
 class BalanceController extends Controller
 {
+
+    public function users(Request $request) {
+        $users = User::query()->select(['id','name'])
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->paginate(10);
+
+        return response()->json($users);
+
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $users = User::select(['id', 'name'])->paginate(10);
+        // $users = User::select(['id', 'name'])->paginate(10);
 
-        return Inertia::render("Balance/BalanceIndex", ['users' => $users]);
+        return Inertia::render("Balance/BalanceIndex", []);
     }
 
     /**
@@ -40,11 +52,35 @@ class BalanceController extends Controller
      * Display the specified resource.
      */
     public function show(User $user) {
-        $events = Event::where('user_id', $user->id)->get();
+
+        $events = Event::where('user_id', $user->id)
+            ->when(request('year'), function($query, $year) {
+                $query->whereYear('start', request('year'));
+            })
+             ->when(request('month'), function($query, $month) {
+                $query->whereMonth('start', request('month'));
+            })
+            ->get();
+
+        $leaveTypes = ['Vacation Leave', 'Sick Leave', 'Force Leave', 'Wellness Leave'];
+
+        $balances = collect($leaveTypes)->map(function ($type) use ($events) {
+            $filtered  = $events->where('leave_type', $type);
+            $allocated = $filtered->where('event_type', 'allocated')->sum('time');
+            $filed     = $filtered->where('event_type', 'filed')->sum('time');
+
+            return [
+                'leave_type' => $type,
+                'balance'    => $allocated,
+                'used'       => $filed,
+                'remaining'  => $allocated - $filed,
+            ];
+        });
 
         return Inertia::render('Balance/UserBalance', [
-            'user'   => $user->only('id', 'name'),
-            'balances' => EventData::collect($events),
+            'user'     => $user->only('id', 'name'),
+            'balances' => $balances,
+            'events'   => EventData::collect($events),
         ]);
     }
 

@@ -8,7 +8,9 @@ import { Sigma } from 'lucide-react';
 export const userColumns: ColumnDef<User>[] = [
     {
         accessorKey: 'name',
-        header: () => <div className="py-3 font-semibold">Name</div>,
+        header: () => (
+            <div className="py-3 font-semibold text-sky-700">Name</div>
+        ),
         cell: ({ row }) => {
             const user = row.original;
 
@@ -31,7 +33,7 @@ export const userColumns: ColumnDef<User>[] = [
                             View Balance
                         </Button>
                     </Link>
-                </div>2
+                </div>
             );
         },
     },

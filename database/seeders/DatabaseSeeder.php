@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        User::factory(20)->create();
 
        $user = User::factory()->create([
             'name' => 'Ray Alingasa',
@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             [
                 'user_id' => $user->id,
                 'leave_type' => "Vacation Leave",
-                'event_type' => 'default',
+                'event_type' => 'allocated',
                 'time' => 5.584,
                 'start' => '2023-01-01',
                 'end' => '2023-01-01'
@@ -33,10 +33,18 @@ class DatabaseSeeder extends Seeder
             [
                 'user_id' => $user->id,
                 'leave_type' => "Sick Leave",
-                'event_type' => 'default',
+                'event_type' => 'allocated',
                 'time' => 10.792,
                 'start' => '2023-01-01',
                 'end' => '2023-01-01'
+            ],
+            [
+                'user_id' => $user->id,
+                'leave_type' => "Vacation Leave",
+                'event_type' => 'filed',
+                'time' => 1.00,
+                'start' => '2023-01-11',
+                'end' => '2023-01-11'
             ],
         ];
 

@@ -1,5 +1,6 @@
 import { Eventdata } from '@/types';
 import { ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
 
 export const balanceColumns: ColumnDef<Eventdata>[] = [
     {
@@ -78,8 +79,34 @@ export const balanceColumns: ColumnDef<Eventdata>[] = [
                 <div
                     className={`text-left text-xs font-medium ${timeColor[type] ?? 'text-gray-600'}`}
                 >
-                    {timePrefix[type]} {data.time}
+                    {timePrefix[type]} {data.time.toFixed(2)}
                 </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'start',
+        header: () => <div className="text-left">Start</div>,
+        cell: ({ row }) => {
+            const data = row.original.start;
+
+            const formatted = format(new Date(data), 'MMM dd, yyyy');
+
+            return (
+                <div className="text-left text-xs font-medium">{formatted}</div>
+            );
+        },
+    },
+    {
+        accessorKey: 'end',
+        header: () => <div className="text-left">End</div>,
+        cell: ({ row }) => {
+            const data = row.original.end;
+
+            const formatted = format(new Date(data), 'MMM dd, yyyy');
+
+            return (
+                <div className="text-left text-xs font-medium">{formatted}</div>
             );
         },
     },

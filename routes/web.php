@@ -12,6 +12,10 @@ Route::inertia('/', 'welcome', [
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
+
+    // json response
+    Route::get("users", [BalanceController::class, 'users'])->name('users');
+
     // balance - event
     Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
     Route::get('balance/{user}', [BalanceController::class, 'show'])->name('balance.show');
