@@ -38,6 +38,7 @@ const event_types: EventType[] = [
     { id: 2, leave_type: 'Sick Leave' },
     { id: 3, leave_type: 'Force Leave' },
     { id: 4, leave_type: 'Undertime' },
+    { id: 5, leave_type: 'Tardiness' },
 ];
 
 export default function EventForm({ users }: { users: User[] }) {
@@ -56,8 +57,6 @@ export default function EventForm({ users }: { users: User[] }) {
         end: '',
     });
 
-    console.log(eventForm.data);
-
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
 
@@ -69,16 +68,18 @@ export default function EventForm({ users }: { users: User[] }) {
             : '';
 
         const isUndertime = eventForm.data.leave_type === 'Undertime';
+        const isTardiness = eventForm.data.leave_type === 'Tardiness';
 
-        const totalMinutes = isUndertime
-            ? Number(
-                  Math.floor(
-                      (differenceInMinutes(new Date(end), new Date(start)) /
-                          480) *
-                          1000,
-                  ) / 1000,
-              )
-            : -1;
+        const totalMinutes =
+            isUndertime || isTardiness
+                ? Number(
+                      Math.floor(
+                          (differenceInMinutes(new Date(end), new Date(start)) /
+                              480) *
+                              1000,
+                      ) / 1000,
+                  )
+                : -1;
 
         eventForm.setData({
             ...eventForm.data,

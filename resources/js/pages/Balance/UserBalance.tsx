@@ -13,17 +13,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import balance from '@/routes/balance';
-import { EventData, User } from '@/types';
-import { router, usePage } from '@inertiajs/react';
+import { CurrentBalance, EventData, EventForm, User } from '@/types';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { Filter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { months, years } from '../Hook/BalanceData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BalanceTable } from './Table/BalanceTable';
 import { balanceColumns } from './Table/BalanceColumns';
+import { Separator } from '@/components/ui/separator';
 
 type PageProps = {
-    balances: EventData;
+    balances: CurrentBalance;
     user: User;
     events: EventData[];
 };
@@ -53,6 +54,28 @@ export default function UserBalance() {
     }, [month, year]);
 
     const date = new Date(Number(year), Number(month) - 1);
+
+    const eventForm = useForm<EventForm>({
+        user_id: user.id,
+        leave_type: '',
+        event_type: 'allocated',
+        time: 1.25,
+        start: '',
+        end: '',
+    });
+
+    function handleSubmit(e) {
+        e.preventDefault();
+
+        eventForm.setData({
+            ...eventForm.data,
+            leave_type: 'Vacation Leave',
+            start: events[0]?.start,
+            end: events[0]?.end,
+        });
+
+        eventForm.submit(balance.store());
+    }
 
     return (
         <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
@@ -177,7 +200,7 @@ export default function UserBalance() {
                 </div>
                 <div className="grid grid-cols-5 gap-4">
                     {balances.map((data, index) => (
-                        <Card className="mx-auto w-full max-w-sm">
+                        <Card className="mx-auto w-full max-w-sm" key={index}>
                             <CardHeader>
                                 <CardTitle>{data.leave_type}</CardTitle>
                             </CardHeader>
@@ -189,13 +212,20 @@ export default function UserBalance() {
                                     <p className="text-sm text-muted-foreground">
                                         Used
                                     </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Remaining
+                                    </p>
                                 </div>
                                 <div className="space-y-1 text-right">
                                     <p className="text-sm font-medium">
-                                        {data.remaining}
+                                        {data.balance}
                                     </p>
                                     <p className="text-sm font-medium">
                                         {data.used}
+                                    </p>
+                                    <Separator />
+                                    <p className="text-sm font-medium">
+                                        {data.remaining}
                                     </p>
                                 </div>
                             </CardContent>
@@ -206,6 +236,7 @@ export default function UserBalance() {
                     <BalanceTable data={events} columns={balanceColumns} />
                 </div>
             </div>
+            <Button onClick={handleSubmit}>Test</Button>
         </div>
     );
 }

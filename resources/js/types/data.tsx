@@ -11,6 +11,13 @@ export type EventData = {
     user?: User | undefined;
 };
 
+export type CurrentBalance = {
+    leave_type: string;
+    balance: number;
+    used: number;
+    remaining: number;
+};
+
 export type EventForm = {
     user_id: number | undefined;
     leave_type: string;

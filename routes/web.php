@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // balance - event
     Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
     Route::get('balance/{user}', [BalanceController::class, 'show'])->name('balance.show');
+    Route::post("balance", [BalanceController::class, 'store'])->name('balance.store');
 
     // leave - event
     Route::get('leave', [EventController::class, 'index'])->name('leave.index');

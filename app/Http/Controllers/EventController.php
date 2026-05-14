@@ -47,10 +47,7 @@ class EventController extends Controller
      */
     public function store(EventData $eventData)
     {
-        info($eventData->toArray());
         $eventData = Event::create($eventData->toArray());
-        info($eventData);
-
         return to_route("leave.index")->with('message', 'Event Created Successfully!');
     }
 

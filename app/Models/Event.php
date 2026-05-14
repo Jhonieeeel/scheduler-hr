@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 
 class Event extends Model
 {
@@ -28,13 +31,42 @@ class Event extends Model
     }
 
     // god model
-    // public getUndertime($time) {
-    //     return round($time / 480, 3);
-    // }
+    public static function calculateBalance(Collection $events): Collection {
+        $leaveTypes = ['Vacation Leave', 'Sick Leave', 'Force Leave', 'Wellness Leave', 'Undertime', 'Special Privilege Leave'];
 
-    // public function checkEventType() {
-    //     return match($leave_type) {
-    //         'Undertime' => ''
-    //     };
-    // }
+        return collect($leaveTypes)->map(function($type) use ($events) {
+
+            $leave_type = $events->where('leave_type', $type);
+
+            $currentBalance = $leave_type
+                ->where('event_type', 'allocated')
+                ->sum('time');
+
+            $deductBalance = $leave_type
+                ->where('event_type', 'filed')
+                ->sum('time');
+
+            $undertime = $leave_type
+                ->where('event_type', 'filed')
+                ->sum(function ($event) {
+                    return Carbon::parse($event->start)
+                        ->diffInMinutes(Carbon::parse($event->end));
+                });
+
+            $remaining = match($type) {
+                'Vacation Leave' => ($currentBalance - ($undertime + $deductBalance)) + 1.25,
+                'Sick Leave' => ($currentBalance - $deductBalance) + 1.25,
+                'Undertime' => round($undertime / 480, 3),
+                default => $currentBalance - $deductBalance
+            };
+
+            return [
+                'leave_type' => $type,
+                'balance' => $currentBalance,
+                'used' => $deductBalance,
+                'remaining' => $remaining
+            ];
+
+        });
+    }
 }

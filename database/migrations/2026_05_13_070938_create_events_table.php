@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('leave_type')->nullable(); // vl, sl, undertime( hours & minutes )
             $table->string('event_type')->nullable(); // accomodatd + , filed - , default ~
-            $table->decimal('time')->nullable(); // 0.00
+            $table->decimal('time', 10, 3)->nullable(); // 0.00
             $table->datetime('start')->nullable(); // 2026-05-14 08:00:00
             $table->datetime('end')->nullable(); //2026-05-14 09:30:00
             $table->timestamps();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Data\EventData;
 use App\Models\Event;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -43,9 +44,44 @@ class BalanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(EventData $eventData)
     {
-        //
+        $start = Carbon::parse($eventData->start)
+            ->addMonthNoOverflow()
+            ->startOfMonth();
+
+        $end = Carbon::parse($eventData->end)
+            ->addMonthNoOverflow()
+            ->startOfMonth();
+
+        $types = ['Vacation Leave', 'Sick Leave'];
+
+        foreach ($types as $type) {
+            $exists = Event::where('user_id', $eventData->user_id)
+                ->where('leave_type', $type)
+                ->where('event_type', 'allocated')
+                ->whereYear('start', $start->year)
+                ->whereMonth('start', $start->month)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'message' => "Accrual for {$start->format('F Y')} already exists.",
+                ], 409);
+            }
+
+            Event::create([
+                'user_id'    => $eventData->user_id,
+                'leave_type' => $type,
+                'event_type' => 'allocated',
+                'time'       => 1.25,
+                'start'      => $start,
+                'end'        => $end,
+            ]);
+        }
+
+
+        return to_route("balance.show", $eventData->user_id);
     }
 
     /**
@@ -60,22 +96,10 @@ class BalanceController extends Controller
              ->when(request('month'), function($query, $month) {
                 $query->whereMonth('start', request('month'));
             })
+            ->orWhereYear('start', request('year'))
             ->get();
 
-        $leaveTypes = ['Vacation Leave', 'Sick Leave', 'Force Leave', 'Wellness Leave'];
-
-        $balances = collect($leaveTypes)->map(function ($type) use ($events) {
-            $filtered  = $events->where('leave_type', $type);
-            $allocated = $filtered->where('event_type', 'allocated')->sum('time');
-            $filed     = $filtered->where('event_type', 'filed')->sum('time');
-
-            return [
-                'leave_type' => $type,
-                'balance'    => $allocated,
-                'used'       => $filed,
-                'remaining'  => $allocated - $filed,
-            ];
-        });
+        $balances = Event::calculateBalance($events);
 
         return Inertia::render('Balance/UserBalance', [
             'user'     => $user->only('id', 'name'),
