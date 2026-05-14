@@ -17,8 +17,8 @@ class Event extends Model
     ];
 
     protected $casts = [
-        'start' => 'date',
-        'end' => 'date',
+        'start' => 'datetime',
+        'end' => 'datetime',
         'time' => 'float'
     ];
 
@@ -26,4 +26,15 @@ class Event extends Model
     public function user(): BelongsTo {
         return $this->belongsTo(User::class);
     }
+
+    // god model
+    // public getUndertime($time) {
+    //     return round($time / 480, 3);
+    // }
+
+    // public function checkEventType() {
+    //     return match($leave_type) {
+    //         'Undertime' => ''
+    //     };
+    // }
 }

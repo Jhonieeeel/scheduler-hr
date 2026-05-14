@@ -15,6 +15,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // json response
     Route::get("users", [BalanceController::class, 'users'])->name('users');
+    Route::get("events", [EventController::class, 'events'])->name('events');
 
     // balance - event
     Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
@@ -22,6 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // leave - event
     Route::get('leave', [EventController::class, 'index'])->name('leave.index');
+    Route::post('leave', [EventController::class, 'store'])->name('leave.store');
 });
 
 require __DIR__.'/settings.php';

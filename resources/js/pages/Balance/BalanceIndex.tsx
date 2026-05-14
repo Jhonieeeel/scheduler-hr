@@ -1,23 +1,14 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import balance from '@/routes/balance';
-import { EventData, User } from '@/types';
 import { Head } from '@inertiajs/react';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { fetchUsers, months, years } from '../Hook/BalanceData';
+import { useDebounce } from '@uidotdev/usehooks';
+import { useState } from 'react';
+import { fetchUsers } from '../Hook/BalanceData';
 import { userColumns } from './Table/UserColumns';
 import { UserTable } from './Table/UserTable';
-import { useDebounce } from '@uidotdev/usehooks';
 
 export default function BalanceIndex() {
     const [page, setPage] = useState<number>(1);
