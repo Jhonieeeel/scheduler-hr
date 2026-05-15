@@ -57,20 +57,18 @@ class BalanceController extends Controller
         $types = ['Vacation Leave', 'Sick Leave'];
 
         foreach ($types as $type) {
-            $exists = Event::where('user_id', $eventData->user_id)
+            $events = Event::where('user_id', $eventData->user_id)
                 ->where('leave_type', $type)
                 ->where('event_type', 'allocated')
                 ->whereYear('start', $start->year)
                 ->whereMonth('start', $start->month)
                 ->exists();
 
-            if ($exists) {
-                return response()->json([
-                    'message' => "Accrual for {$start->format('F Y')} already exists.",
-                ], 409);
+            if ($events) {
+                return back()->withErrors([ 'message' => "Accrual for {$start->format('F Y')} already exists."]);
             }
 
-            Event::create([
+            $events = Event::create([
                 'user_id'    => $eventData->user_id,
                 'leave_type' => $type,
                 'event_type' => 'allocated',
@@ -80,7 +78,6 @@ class BalanceController extends Controller
             ]);
         }
 
-
         return to_route("balance.show", $eventData->user_id);
     }
 
@@ -89,22 +86,28 @@ class BalanceController extends Controller
      */
     public function show(User $user) {
 
-        $events = Event::where('user_id', $user->id)
-            ->when(request('year'), function($query, $year) {
-                $query->whereYear('start', request('year'));
-            })
-             ->when(request('month'), function($query, $month) {
-                $query->whereMonth('start', request('month'));
-            })
-            ->orWhereYear('start', request('year'))
+        $currentEvents = Event::query()
+            ->where('user_id', $user->id)
+            ->whereYear('start', request('year'))
+            ->whereMonth('start', request('month'))
             ->get();
 
-        $balances = Event::calculateBalance($events);
+        $previousEvents = Event::query()
+            ->where('user_id', $user->id)
+            ->when(request('month') && request('year'), function($query) {
+                $query->whereMonth('start', '<', request('month'))
+                ->whereYear('start', request('year'));
+            })
+            ->get();
+
+
+
+        $balances = Event::calculateBalance($currentEvents, $previousEvents ?? []);
 
         return Inertia::render('Balance/UserBalance', [
             'user'     => $user->only('id', 'name'),
             'balances' => $balances,
-            'events'   => EventData::collect($events),
+            'events'   => EventData::collect($currentEvents),
         ]);
     }
 

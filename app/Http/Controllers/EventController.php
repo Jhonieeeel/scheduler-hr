@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Data\EventData;
 use App\Models\Event;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -47,6 +48,8 @@ class EventController extends Controller
      */
     public function store(EventData $eventData)
     {
+
+
         $eventData = Event::create($eventData->toArray());
         return to_route("leave.index")->with('message', 'Event Created Successfully!');
     }
@@ -80,6 +83,7 @@ class EventController extends Controller
      */
     public function destroy(Event $event)
     {
-        //
+        $event->delete();
+        return to_route('leave.index')->with('message', 'Event Deleted Successfully');
     }
 }

@@ -1,6 +1,7 @@
 import { User } from './auth';
 
 export type EventData = {
+    id?: number;
     user_id: number;
     leave_type: string;
     event_type: string;

@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // leave - event
     Route::get('leave', [EventController::class, 'index'])->name('leave.index');
     Route::post('leave', [EventController::class, 'store'])->name('leave.store');
+    Route::delete('leave', [EventController::class,'destroy'])->name('leave.destroy');
 });
 
 require __DIR__.'/settings.php';

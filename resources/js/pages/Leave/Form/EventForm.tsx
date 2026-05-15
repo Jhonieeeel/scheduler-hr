@@ -19,7 +19,7 @@ import { Form, useForm } from '@inertiajs/react';
 
 import { differenceInMinutes, format, isValid, parse } from 'date-fns';
 import { CalendarIcon, ChevronDownIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { EventForm as EventDataForm } from '@/types';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -45,11 +45,11 @@ export default function EventForm({ users }: { users: User[] }) {
     const [startOpen, setStartOpen] = useState(false);
     const [endOpen, setEndOpen] = useState(false);
 
-    const [startTime, setStartTime] = useState<string>('00:00:00');
-    const [endTime, setEndTme] = useState<string>('00:00:00');
+    const [startTime, setStartTime] = useState<string>('08:00:00');
+    const [endTime, setEndTme] = useState<string>('08:00:00');
 
     const eventForm = useForm<EventDataForm>({
-        user_id: undefined,
+        user_id: 0,
         leave_type: '',
         event_type: '',
         time: 0,
@@ -72,13 +72,7 @@ export default function EventForm({ users }: { users: User[] }) {
 
         const totalMinutes =
             isUndertime || isTardiness
-                ? Number(
-                      Math.floor(
-                          (differenceInMinutes(new Date(end), new Date(start)) /
-                              480) *
-                              1000,
-                      ) / 1000,
-                  )
+                ? differenceInMinutes(new Date(end), new Date(start))
                 : -1;
 
         eventForm.setData({
@@ -92,8 +86,9 @@ export default function EventForm({ users }: { users: User[] }) {
         eventForm.submit(leave.store(), {
             onSuccess: () => {
                 eventForm.reset();
-                setStartTime('00:00:00');
-                setEndTme('00:00:00');
+                eventForm.setData('user_id', 0);
+                setStartTime('08:00:00');
+                setEndTme('08:00:00');
             },
         });
     }

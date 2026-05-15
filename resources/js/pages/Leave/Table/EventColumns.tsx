@@ -1,8 +1,20 @@
-import { Eventdata } from '@/types';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import leave from '@/routes/leave';
+import { EventData } from '@/types';
+import { useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
 import { differenceInMinutes, format } from 'date-fns';
+import { MoreHorizontal, Trash2Icon } from 'lucide-react';
 
-export const eventColumns: ColumnDef<Eventdata>[] = [
+export const eventColumns: ColumnDef<EventData>[] = [
     {
         accessorKey: 'user.name',
         header: () => <div className="text-left">Employee Name</div>,
@@ -90,13 +102,19 @@ export const eventColumns: ColumnDef<Eventdata>[] = [
             const startDate = new Date(data.start);
             const endDate = new Date(data.end);
 
-            let totalMinutes = 0;
-            let min = 0;
+            const min = differenceInMinutes(endDate, startDate);
 
-            if (data.leave_type === 'Undertime') {
-                min = differenceInMinutes(endDate, startDate);
+            let hours = Math.floor(min / 60);
+            let minutes = min % 60;
 
-                totalMinutes = Math.floor((min / 480) * 1000) / 1000;
+            let formatted = '';
+
+            if (
+                data.leave_type === 'Undertime' ||
+                data.leave_type === 'Tardiness'
+            ) {
+                formatted =
+                    `${hours > 0 ? `${hours} hr ` : ''}${minutes > 0 ? `${minutes} mins` : ''}`.trim();
             }
 
             const type = data.event_type as EventType;
@@ -105,8 +123,9 @@ export const eventColumns: ColumnDef<Eventdata>[] = [
                 <div
                     className={`text-left text-xs font-medium ${timeColor[type] ?? 'text-gray-600'}`}
                 >
-                    {data.leave_type === 'Undertime'
-                        ? `${timePrefix[type]} ${totalMinutes}`
+                    {data.leave_type === 'Undertime' ||
+                    data.leave_type === 'Tardiness'
+                        ? `${timePrefix[type]} ${formatted}`
                         : `${timePrefix[type]} ${data.time.toFixed(2)}`}
                 </div>
             );
@@ -147,6 +166,43 @@ export const eventColumns: ColumnDef<Eventdata>[] = [
 
             return (
                 <div className="text-left text-xs font-medium">{formatted}</div>
+            );
+        },
+    },
+    {
+        accessorKey: 'action',
+        header: () => <div className="text-left">Action</div>,
+        cell: ({ row }) => {
+            const data = row.original;
+
+            const eventForm = useForm({
+                id: data.id,
+            });
+
+            return (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() =>
+                                eventForm.submit(leave.destroy(data.id))
+                            }
+                        >
+                            <Trash2Icon className="text-red-600 hover:text-red-600" />
+                            <span className="text-red-600 hover:text-red-600">
+                                Delete
+                            </span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             );
         },
     },

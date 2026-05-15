@@ -40,7 +40,14 @@ export default function UserBalance() {
         (new Date().getMonth() + 1).toString(),
     );
 
-    console.log('Balances', balances);
+    const eventForm = useForm<EventForm>({
+        user_id: user.id,
+        leave_type: '',
+        event_type: 'allocated',
+        time: 1.25,
+        start: '',
+        end: '',
+    });
 
     useEffect(() => {
         router.get(
@@ -55,26 +62,22 @@ export default function UserBalance() {
 
     const date = new Date(Number(year), Number(month) - 1);
 
-    const eventForm = useForm<EventForm>({
-        user_id: user.id,
-        leave_type: '',
-        event_type: 'allocated',
-        time: 1.25,
-        start: '',
-        end: '',
-    });
-
     function handleSubmit(e) {
         e.preventDefault();
 
-        eventForm.setData({
+        const newData = {
             ...eventForm.data,
-            leave_type: 'Vacation Leave',
             start: events[0]?.start,
             end: events[0]?.end,
-        });
+        };
 
-        eventForm.submit(balance.store());
+        eventForm.setData(newData);
+
+        eventForm.submit(balance.store(), {
+            onSuccess: () => {
+                eventForm.reset();
+            },
+        });
     }
 
     return (
@@ -96,6 +99,7 @@ export default function UserBalance() {
                             </span>
                         </p>
                     </div>
+                    {/* Filter */}
                     <div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -218,7 +222,7 @@ export default function UserBalance() {
                                 </div>
                                 <div className="space-y-1 text-right">
                                     <p className="text-sm font-medium">
-                                        {data.balance}
+                                        {data.current}
                                     </p>
                                     <p className="text-sm font-medium">
                                         {data.used}
