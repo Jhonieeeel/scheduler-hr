@@ -20,10 +20,13 @@ export type CurrentBalance = {
 };
 
 export type EventForm = {
-    user_id: number | undefined;
-    leave_type: string;
-    event_type: string;
-    time: number;
+    id?: number;
+    user_id?: number | undefined;
+    leave_type?: string;
+    event_type?: string;
+    time?: number;
     start?: string;
     end?: string;
+
+    accrual?: string;
 };

@@ -8,8 +8,9 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import leave from '@/routes/leave';
-import { EventData } from '@/types';
+import { EventData, EventForm } from '@/types';
 import { useForm } from '@inertiajs/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
 import { differenceInMinutes, format } from 'date-fns';
 import { MoreHorizontal, Trash2Icon } from 'lucide-react';
@@ -19,7 +20,7 @@ export const eventColumns: ColumnDef<EventData>[] = [
         accessorKey: 'user.name',
         header: () => <div className="text-left">Employee Name</div>,
         cell: ({ row }) => {
-            const data = row.original.user.name;
+            const data = row.original.user?.name;
 
             return (
                 <div className="flex items-center gap-2 text-xs">
@@ -133,39 +134,19 @@ export const eventColumns: ColumnDef<EventData>[] = [
     },
     {
         accessorKey: 'start',
-        header: () => <div className="text-left">Start</div>,
+        header: () => <div className="text-left">Date</div>,
         cell: ({ row }) => {
-            const data = row.original;
+            const { start, end } = row.original;
 
-            let date = format(new Date(data.start), 'yyyy-MM-dd');
-            let timeOnly = format(new Date(data.start), 'HH:mm');
+            const startDate = format(new Date(start), 'MMM dd');
+            const endDate = format(new Date(end), 'MMM dd, yyyy');
 
-            const formatted =
-                data.leave_type === 'Undertime'
-                    ? `${date} - ${timeOnly}`
-                    : `${date}`;
+            const isSameDay = start === end;
 
             return (
-                <div className="text-left text-xs font-medium">{formatted}</div>
-            );
-        },
-    },
-    {
-        accessorKey: 'end',
-        header: () => <div className="text-left">End</div>,
-        cell: ({ row }) => {
-            const data = row.original;
-
-            let date = format(new Date(data.end), 'yyyy-MM-dd');
-            let timeOnly = format(new Date(data.end), 'HH:mm');
-
-            const formatted =
-                data.leave_type === 'Undertime'
-                    ? `${date} - ${timeOnly}`
-                    : `${date}`;
-
-            return (
-                <div className="text-left text-xs font-medium">{formatted}</div>
+                <div className="text-left text-xs font-medium">
+                    {isSameDay ? endDate : `${startDate} – ${endDate}`}
+                </div>
             );
         },
     },
@@ -175,9 +156,19 @@ export const eventColumns: ColumnDef<EventData>[] = [
         cell: ({ row }) => {
             const data = row.original;
 
-            const eventForm = useForm({
+            const queryClient = useQueryClient();
+
+            const eventForm = useForm<EventForm>({
                 id: data.id,
             });
+
+            function handleDelete() {
+                eventForm.submit(leave.destroy(Number(eventForm.data.id)), {
+                    onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: ['events'] });
+                    },
+                });
+            }
 
             return (
                 <DropdownMenu>
@@ -191,10 +182,8 @@ export const eventColumns: ColumnDef<EventData>[] = [
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                            onClick={handleDelete}
                             className="text-red-600"
-                            onClick={() =>
-                                eventForm.submit(leave.destroy(data.id))
-                            }
                         >
                             <Trash2Icon className="text-red-600 hover:text-red-600" />
                             <span className="text-red-600 hover:text-red-600">

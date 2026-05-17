@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,30 +12,32 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import balance from '@/routes/balance';
 import { CurrentBalance, EventData, EventForm, User } from '@/types';
-import { router, useForm, usePage } from '@inertiajs/react';
-import { Filter } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { addMonths, format, parseISO } from 'date-fns';
+import { Calendar, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { months, years } from '../Hook/BalanceData';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BalanceTable } from './Table/BalanceTable';
 import { balanceColumns } from './Table/BalanceColumns';
-import { Separator } from '@/components/ui/separator';
+import { BalanceTable } from './Table/BalanceTable';
+import leave from '@/routes/leave';
 
 type PageProps = {
     balances: CurrentBalance;
     user: User;
     events: EventData[];
+    m: string;
+    y: string;
 };
 
 export default function UserBalance() {
-    const { user, balances, events } = usePage<PageProps>().props;
+    const { user, balances, events, m, y } = usePage<PageProps>().props;
 
     const [year, setYear] = useState<string>(
         new Date().getFullYear().toString(),
     );
-
     const [month, setMonth] = useState<string>(
         (new Date().getMonth() + 1).toString(),
     );
@@ -53,14 +55,9 @@ export default function UserBalance() {
         router.get(
             `/balance/${user.id}`,
             { month, year },
-            {
-                preserveState: true,
-                preserveScroll: true,
-            },
+            { preserveState: true, preserveScroll: true },
         );
     }, [month, year]);
-
-    const date = new Date(Number(year), Number(month) - 1);
 
     function handleSubmit(e) {
         e.preventDefault();
@@ -72,141 +69,216 @@ export default function UserBalance() {
         };
 
         eventForm.setData(newData);
-
         eventForm.submit(balance.store(), {
-            onSuccess: () => {
-                eventForm.reset();
-            },
+            onSuccess: () => eventForm.reset(),
         });
+    }
+
+    function renderAccrualButton() {
+        if (events.length > 1) {
+            const date = parseISO(events?.[0].start);
+            const nextMonth = format(addMonths(date, 1), 'MMM');
+
+            return (
+                <Button
+                    onClick={handleSubmit}
+                    className="rounded-md border border-sky-700 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-700 hover:text-white dark:border-sky-600 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-700 dark:hover:text-white"
+                >
+                    <Calendar />
+                    Simulate {nextMonth} Accrual
+                </Button>
+            );
+        }
+        return;
     }
 
     return (
         <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
             <div className="relative min-h-screen flex-1 space-y-2.5 overflow-hidden rounded-xl md:min-h-min dark:border-sidebar-border">
-                {/* user detail */}
+                {/* User detail */}
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-muted-foreground">
                             Viewing balance for
                         </p>
-                        <h3 className="text-2xl font-bold text-sky-600">
+                        <h3 className="text-2xl font-bold text-sky-600 dark:text-sky-400">
                             {user.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                            Date of{' '}
-                            <span className="font-semibold text-sky-600">
-                                {format(date, 'MMM yyyy')}
-                            </span>
-                        </p>
-                    </div>
-                    {/* Filter */}
-                    <div>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button className="rounded-md bg-sky-700 px-2 py-1.5 text-white hover:bg-sky-800">
-                                    <Filter className="h-4 w-4" />
-                                    Filter by
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="w-80 p-0"
-                                align="end"
+
+                        {/* Month navigator */}
+                        <div className="flex items-center gap-x-2">
+                            <Button
+                                size="xs"
+                                disabled={Number(month) === 1}
+                                onClick={() =>
+                                    setMonth((prev) => String(Number(prev) - 1))
+                                }
+                                className="rounded-md border border-sky-700 bg-sky-50 px-3 py-1.5 pt-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-700 hover:text-white dark:border-sky-600 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-700 dark:hover:text-white"
                             >
-                                {/* Header */}
-                                <div className="flex items-center justify-between border-b px-4 py-3">
-                                    <div className="flex items-center gap-2">
-                                        <Filter className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">
-                                            Filter
-                                        </span>
-                                    </div>
+                                <ChevronLeft />
+                            </Button>
 
-                                    <button
-                                        onClick={() => {
-                                            setMonth('');
-                                            setYear('');
-                                        }}
-                                        className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                                    >
-                                        Clear all
-                                    </button>
-                                </div>
+                            <span className="min-w-30 text-center text-sm text-foreground">
+                                {months[Number(month) - 1]?.name} {year}
+                            </span>
 
-                                {/* Filters */}
-                                <div className="flex items-center justify-around p-4">
-                                    {/* Month */}
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                            Month
-                                        </label>
-                                        <Select
-                                            value={month}
-                                            onValueChange={setMonth}
-                                        >
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="Select month" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {months.map((m, i) => (
-                                                    <SelectItem
-                                                        key={i}
-                                                        value={m.month.toString()}
-                                                    >
-                                                        {m.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                            <Button
+                                size="xs"
+                                onClick={() => {
+                                    setMonth((prev) =>
+                                        String(
+                                            Number(prev) === 12
+                                                ? 1
+                                                : Number(prev) + 1,
+                                        ),
+                                    );
+                                    setYear((prev) =>
+                                        String(
+                                            Number(month) === 12
+                                                ? Number(prev) + 1
+                                                : prev,
+                                        ),
+                                    );
+                                }}
+                                className="rounded-md border border-sky-700 bg-sky-50 px-3 py-1.5 pt-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-700 hover:text-white dark:border-sky-600 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-700 dark:hover:text-white"
+                            >
+                                <ChevronRight />
+                            </Button>
+                        </div>
+                    </div>
 
-                                    {/* Year */}
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                            Year
-                                        </label>
-                                        <Select
-                                            value={year}
-                                            onValueChange={setYear}
-                                        >
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue placeholder="Select year" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {years.map((y) => (
-                                                    <SelectItem
-                                                        key={y}
-                                                        value={y.toString()}
-                                                    >
-                                                        {y}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
+                    {/* Actions + Filter */}
+                    <div className="flex items-center gap-3">
+                        <p className="text-xs text-red-500 dark:text-red-400">
+                            {eventForm.errors.accrual}
+                        </p>
 
-                                {/* Footer */}
-                                <div className="flex gap-2 border-t bg-muted/40 px-4 py-3">
-                                    <Button
-                                        variant="outline"
-                                        className="h-8 flex-1 rounded-md bg-sky-700 px-2 py-1.5 text-sm text-white hover:bg-sky-800 hover:text-white"
-                                        onClick={() => {
-                                            setMonth('');
-                                            setYear('');
-                                        }}
-                                    >
-                                        Reset
+                        {renderAccrualButton()}
+
+                        {events.length > 1 && (
+                            <div className="py-4">
+                                <Link href={leave.index()}>
+                                    <Button className="rounded-md border border-sky-700 bg-sky-50 px-3 py-1.5 pt-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-700 hover:text-white dark:border-sky-600 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-700 dark:hover:text-white">
+                                        <Calendar />
+                                        Add Event
                                     </Button>
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                </Link>
+                            </div>
+                        )}
+
+                        {/* Filter dropdown */}
+                        <div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button className="rounded-md bg-sky-700 px-2 py-1.5 text-white hover:bg-sky-800 dark:bg-sky-800 dark:hover:bg-sky-700">
+                                        <Filter className="h-4 w-4" />
+                                        Filter by
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    className="w-80 p-0"
+                                    align="end"
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between border-b px-4 py-3 dark:border-sky-900">
+                                        <div className="flex items-center gap-2">
+                                            <Filter className="h-4 w-4 text-muted-foreground" />
+                                            <span className="text-sm font-medium">
+                                                Filter
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setMonth('');
+                                                setYear('');
+                                            }}
+                                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                                        >
+                                            Clear all
+                                        </button>
+                                    </div>
+
+                                    {/* Filters */}
+                                    <div className="flex items-center justify-around p-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                Month
+                                            </label>
+                                            <Select
+                                                value={month}
+                                                onValueChange={setMonth}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="Select month" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {months.map((m, i) => (
+                                                        <SelectItem
+                                                            key={i}
+                                                            value={m.month.toString()}
+                                                        >
+                                                            {m.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                                Year
+                                            </label>
+                                            <Select
+                                                value={year}
+                                                onValueChange={setYear}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="Select year" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {years.map((y) => (
+                                                        <SelectItem
+                                                            key={y}
+                                                            value={y.toString()}
+                                                        >
+                                                            {y}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="flex gap-2 border-t bg-muted/40 px-4 py-3 dark:border-sky-900">
+                                        <Button
+                                            variant="outline"
+                                            className="h-8 flex-1 rounded-md bg-sky-700 px-2 py-1.5 text-sm text-white hover:bg-sky-800 hover:text-white dark:bg-sky-800 dark:hover:bg-sky-700"
+                                            onClick={() => {
+                                                setMonth('');
+                                                setYear('');
+                                            }}
+                                        >
+                                            Reset
+                                        </Button>
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 </div>
+
+                {/* Balance cards */}
                 <div className="grid grid-cols-5 gap-4">
                     {balances.map((data, index) => (
-                        <Card className="mx-auto w-full max-w-sm" key={index}>
+                        <Card
+                            key={index}
+                            className="mx-auto w-full max-w-sm border-sky-100 dark:border-sky-900"
+                        >
                             <CardHeader>
-                                <CardTitle>{data.leave_type}</CardTitle>
+                                <CardTitle className="text-sm font-medium text-sky-700 dark:text-sky-400">
+                                    {data.leave_type}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="flex items-center justify-between">
                                 <div className="space-y-1">
@@ -221,26 +293,31 @@ export default function UserBalance() {
                                     </p>
                                 </div>
                                 <div className="space-y-1 text-right">
-                                    <p className="text-sm font-medium">
-                                        {data.current}
+                                    <p className="text-sm font-medium text-foreground">
+                                        {data.current > 0.0
+                                            ? data.current.toFixed(3)
+                                            : 0}
                                     </p>
-                                    <p className="text-sm font-medium">
+                                    <p className="text-sm font-medium text-foreground">
                                         {data.used}
                                     </p>
-                                    <Separator />
-                                    <p className="text-sm font-medium">
-                                        {data.remaining}
+                                    <Separator className="dark:bg-sky-900" />
+                                    <p className="text-sm font-medium text-sky-700 dark:text-sky-400">
+                                        {data.remaining > 0.0
+                                            ? data.remaining.toFixed(3)
+                                            : 0}
                                     </p>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
+
+                {/* Events table */}
                 <div>
                     <BalanceTable data={events} columns={balanceColumns} />
                 </div>
             </div>
-            <Button onClick={handleSubmit}>Test</Button>
         </div>
     );
 }

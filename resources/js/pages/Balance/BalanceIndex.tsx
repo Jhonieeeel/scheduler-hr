@@ -1,10 +1,15 @@
-import { Input } from '@/components/ui/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import balance from '@/routes/balance';
 import { Head } from '@inertiajs/react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
+import { User2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { fetchUsers } from '../Hook/BalanceData';
 import { userColumns } from './Table/UserColumns';
@@ -33,19 +38,23 @@ export default function BalanceIndex() {
                             <Label htmlFor="name" className="text-xs">
                                 Name
                             </Label>
-
-                            <Input
-                                id="name"
-                                type="text"
-                                required
-                                autoFocus
-                                tabIndex={1}
-                                autoComplete="name"
-                                name="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search name"
-                            />
+                            <InputGroup className="max-w-xs">
+                                <InputGroupInput
+                                    tabIndex={1}
+                                    required
+                                    autoFocus
+                                    value={search}
+                                    autoComplete="name"
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search name"
+                                />
+                                <InputGroupAddon>
+                                    <User2Icon />
+                                </InputGroupAddon>
+                                <InputGroupAddon align="inline-end">
+                                    {users?.data.length} result
+                                </InputGroupAddon>
+                            </InputGroup>
                         </div>
                     </div>
                 </div>
@@ -53,13 +62,9 @@ export default function BalanceIndex() {
                 {/* User List */}
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <h3 className="tex-sm font-semibold text-sky-600">
+                        <h3 className="text-xl font-bold text-sky-600">
                             Employees
                         </h3>
-                        <p className="text-xs">
-                            {users?.data.length}
-                            {'  '}employees
-                        </p>
                     </div>
 
                     <Separator />
@@ -73,7 +78,6 @@ export default function BalanceIndex() {
                         setPage={setPage}
                     />
                 </div>
-                {/* End User List */}
             </div>
         </>
     );

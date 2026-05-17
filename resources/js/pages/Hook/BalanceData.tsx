@@ -1,9 +1,5 @@
 import axios from 'axios';
 
-const usersUrl = axios.create({
-    url: 'http://localhost:8000',
-});
-
 export async function fetchUsers(page: number, search: string) {
     const res = await axios.get('/users', {
         params: { page, search },

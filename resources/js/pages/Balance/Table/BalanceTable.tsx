@@ -72,9 +72,9 @@ export function BalanceTable<TData, TValue>({
                         <TableRow>
                             <TableCell
                                 colSpan={columns.length}
-                                className="h-24 text-center"
+                                className="mx-auto h-24 space-y-2 text-center"
                             >
-                                No results.
+                                <span className="block">No results.</span>
                             </TableCell>
                         </TableRow>
                     )}

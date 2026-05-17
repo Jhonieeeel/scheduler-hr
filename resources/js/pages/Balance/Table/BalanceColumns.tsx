@@ -1,8 +1,20 @@
-import { Eventdata } from '@/types';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import balance from '@/routes/balance';
+import { EventData, EventForm } from '@/types';
+import { Button } from '@base-ui/react';
+import { useForm } from '@inertiajs/react';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
+import { MoreHorizontal, Trash2Icon } from 'lucide-react';
 
-export const balanceColumns: ColumnDef<Eventdata>[] = [
+export const balanceColumns: ColumnDef<EventData>[] = [
     {
         accessorKey: 'leave_type',
         header: () => <div className="text-left">Leave Type</div>,
@@ -86,27 +98,59 @@ export const balanceColumns: ColumnDef<Eventdata>[] = [
     },
     {
         accessorKey: 'start',
-        header: () => <div className="text-left">Start</div>,
+        header: () => <div className="text-left">Date</div>,
         cell: ({ row }) => {
-            const data = row.original.start;
+            const { start, end } = row.original;
 
-            const formatted = format(new Date(data), 'MMM dd, yyyy');
+            const startDate = format(new Date(start), 'MMM dd');
+            const endDate = format(new Date(end), 'MMM dd, yyyy');
+
+            const isSameDay = start === end;
 
             return (
-                <div className="text-left text-xs font-medium">{formatted}</div>
+                <div className="text-left text-xs font-medium">
+                    {isSameDay ? endDate : `${startDate} – ${endDate}`}
+                </div>
             );
         },
     },
     {
-        accessorKey: 'end',
-        header: () => <div className="text-left">End</div>,
+        accessorKey: 'action',
+        header: () => <div className="text-left">Action</div>,
         cell: ({ row }) => {
-            const data = row.original.end;
+            const data = row.original;
 
-            const formatted = format(new Date(data), 'MMM dd, yyyy');
+            const form = useForm<EventForm>({
+                id: data.id,
+                user_id: data.user_id,
+            });
+
+            function handleDelete() {
+                form.submit(balance.destroy(Number(form.data.id)));
+            }
 
             return (
-                <div className="text-left text-xs font-medium">{formatted}</div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onClick={handleDelete}
+                            className="text-red-600"
+                        >
+                            <Trash2Icon className="text-red-600 hover:text-red-600" />
+                            <span className="text-red-600 hover:text-red-600">
+                                Delete
+                            </span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             );
         },
     },

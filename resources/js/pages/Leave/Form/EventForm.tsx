@@ -14,19 +14,18 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { User } from '@/types';
-import { Form, useForm } from '@inertiajs/react';
+import { EventForm, User } from '@/types';
+import { InertiaFormProps } from '@inertiajs/react';
 
 import { differenceInMinutes, format, isValid, parse } from 'date-fns';
-import { CalendarIcon, ChevronDownIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CalendarIcon } from 'lucide-react';
+import { useState } from 'react';
 
-import { EventForm as EventDataForm } from '@/types';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { events } from '@/routes';
 import leave from '@/routes/leave';
+import { useQueryClient } from '@tanstack/react-query';
 
 type EventType = {
     id: number;
@@ -39,59 +38,70 @@ const event_types: EventType[] = [
     { id: 3, leave_type: 'Force Leave' },
     { id: 4, leave_type: 'Undertime' },
     { id: 5, leave_type: 'Tardiness' },
+    { id: 6, leave_type: 'Wellness Leave' },
 ];
 
-export default function EventForm({ users }: { users: User[] }) {
+export default function form({
+    users,
+    form,
+}: {
+    users: User[];
+    form: InertiaFormProps<EventForm>;
+}) {
     const [startOpen, setStartOpen] = useState(false);
     const [endOpen, setEndOpen] = useState(false);
 
     const [startTime, setStartTime] = useState<string>('08:00:00');
     const [endTime, setEndTme] = useState<string>('08:00:00');
 
-    const eventForm = useForm<EventDataForm>({
-        user_id: 0,
-        leave_type: '',
-        event_type: '',
-        time: 0,
-        start: '',
-        end: '',
-    });
+    const queryClient = useQueryClient();
 
-    function handleSubmit(e: React.FormEvent) {
+    function invalidateQuery() {
+        queryClient.invalidateQueries({
+            queryKey: ['events'],
+        });
+    }
+
+    function handleSubmit(e) {
         e.preventDefault();
 
-        const start = eventForm.data.start
-            ? `${eventForm.data.start} ${startTime}`
-            : '';
-        const end = eventForm.data.end
-            ? `${eventForm.data.end} ${endTime}`
-            : '';
+        const start = form.data.start ? `${form.data.start} ${startTime}` : '';
+        const end = form.data.end ? `${form.data.end} ${endTime}` : '';
 
-        const isUndertime = eventForm.data.leave_type === 'Undertime';
-        const isTardiness = eventForm.data.leave_type === 'Tardiness';
+        const isUndertime = form.data.leave_type === 'Undertime';
+        const isTardiness = form.data.leave_type === 'Tardiness';
 
         const totalMinutes =
             isUndertime || isTardiness
                 ? differenceInMinutes(new Date(end), new Date(start))
-                : -1;
+                : 1;
 
-        eventForm.setData({
-            ...eventForm.data,
+        form.setData({
+            ...form.data,
             start: start,
             end: end,
             time: totalMinutes,
             event_type: 'filed',
         });
 
-        eventForm.submit(leave.store(), {
+        form.submit(leave.store(), {
             onSuccess: () => {
-                eventForm.reset();
-                eventForm.setData('user_id', 0);
+                form.reset();
+                form.setData('user_id', 0);
                 setStartTime('08:00:00');
                 setEndTme('08:00:00');
+                invalidateQuery();
             },
         });
     }
+
+    const isFormIncomplete =
+        !form.data.leave_type ||
+        !form.data.start ||
+        (form.data.leave_type === 'Undertime' &&
+            (!form.data.start || !form.data.end));
+
+    console.log(form.errors.leave_type);
 
     return (
         <div className="space-y-5 rounded-xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -104,7 +114,8 @@ export default function EventForm({ users }: { users: User[] }) {
                             items={users}
                             onValueChange={(val) => {
                                 const user = users.find((u) => u.name === val);
-                                if (user) eventForm.setData('user_id', user.id);
+
+                                if (user) form.setData('user_id', user.id);
                             }}
                         >
                             <ComboboxInput placeholder="Select a user" />
@@ -122,9 +133,9 @@ export default function EventForm({ users }: { users: User[] }) {
                                 </ComboboxList>
                             </ComboboxContent>
                         </Combobox>
-                        {eventForm.errors.user_id && (
+                        {form.errors.user_id && (
                             <p className="text-xs text-red-500">
-                                {eventForm.errors.user_id}
+                                {form.errors.user_id}
                             </p>
                         )}
                     </div>
@@ -133,13 +144,16 @@ export default function EventForm({ users }: { users: User[] }) {
                     <div className="space-y-1.5">
                         <Label htmlFor="event_type">Event Type</Label>
                         <Combobox
-                            disabled={!eventForm.data.user_id}
                             items={event_types}
                             onValueChange={(val) =>
-                                eventForm.setData('leave_type', val)
+                                form.setData('leave_type', val)
                             }
                         >
-                            <ComboboxInput placeholder="Select an event" />
+                            <ComboboxInput
+                                disabled={!form.data.user_id}
+                                placeholder="Select an event"
+                                className="border"
+                            />
                             <ComboboxContent>
                                 <ComboboxEmpty>No events found.</ComboboxEmpty>
                                 <ComboboxList>
@@ -154,9 +168,9 @@ export default function EventForm({ users }: { users: User[] }) {
                                 </ComboboxList>
                             </ComboboxContent>
                         </Combobox>
-                        {eventForm.errors.event_type && (
+                        {form.errors.leave_type && (
                             <p className="text-xs text-red-500">
-                                {eventForm.errors.event_type}
+                                {form.errors.leave_type}
                             </p>
                         )}
                     </div>
@@ -174,22 +188,22 @@ export default function EventForm({ users }: { users: User[] }) {
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant="outline"
-                                        disabled={!eventForm.data.leave_type}
+                                        disabled={!form.data.leave_type}
                                         className="w-full justify-start text-left font-normal"
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
 
-                                        {eventForm.data.start &&
+                                        {form.data.start &&
                                         isValid(
                                             parse(
-                                                eventForm.data.start,
+                                                form.data.start,
                                                 'yyyy-MM-dd',
                                                 new Date(),
                                             ),
                                         )
                                             ? format(
                                                   parse(
-                                                      eventForm.data.start,
+                                                      form.data.start,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   ),
@@ -205,18 +219,18 @@ export default function EventForm({ users }: { users: User[] }) {
                                     <Calendar
                                         mode="single"
                                         selected={
-                                            eventForm.data.start
+                                            form.data.start
                                                 ? parse(
-                                                      eventForm.data.start,
+                                                      form.data.start,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   )
                                                 : undefined
                                         }
                                         defaultMonth={
-                                            eventForm.data.start
+                                            form.data.start
                                                 ? parse(
-                                                      eventForm.data.start,
+                                                      form.data.start,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   )
@@ -224,8 +238,14 @@ export default function EventForm({ users }: { users: User[] }) {
                                         }
                                         captionLayout="dropdown"
                                         onSelect={(date) => {
-                                            eventForm.setData(
+                                            form.setData(
                                                 'start',
+                                                date
+                                                    ? format(date, 'yyyy-MM-dd')
+                                                    : '',
+                                            );
+                                            form.setData(
+                                                'end',
                                                 date
                                                     ? format(date, 'yyyy-MM-dd')
                                                     : '',
@@ -244,7 +264,7 @@ export default function EventForm({ users }: { users: User[] }) {
                                 type="time"
                                 id="time-picker-optional"
                                 step="1"
-                                disabled={!eventForm.data.start}
+                                disabled={!form.data.start}
                                 defaultValue={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
                                 className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
@@ -261,23 +281,23 @@ export default function EventForm({ users }: { users: User[] }) {
                             <Popover open={endOpen} onOpenChange={setEndOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
-                                        disabled={!eventForm.data.start}
+                                        disabled={!form.data.start}
                                         variant="outline"
                                         className="w-full justify-start text-left font-normal"
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
 
-                                        {eventForm.data.end &&
+                                        {form.data.end &&
                                         isValid(
                                             parse(
-                                                eventForm.data.end,
+                                                form.data.end,
                                                 'yyyy-MM-dd',
                                                 new Date(),
                                             ),
                                         )
                                             ? format(
                                                   parse(
-                                                      eventForm.data.end,
+                                                      form.data.end,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   ),
@@ -293,18 +313,18 @@ export default function EventForm({ users }: { users: User[] }) {
                                     <Calendar
                                         mode="single"
                                         selected={
-                                            eventForm.data.end
+                                            form.data.end
                                                 ? parse(
-                                                      eventForm.data.end,
+                                                      form.data.end,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   )
                                                 : undefined
                                         }
                                         defaultMonth={
-                                            eventForm.data.end
+                                            form.data.end
                                                 ? parse(
-                                                      eventForm.data.end,
+                                                      form.data.end,
                                                       'yyyy-MM-dd',
                                                       new Date(),
                                                   )
@@ -312,7 +332,7 @@ export default function EventForm({ users }: { users: User[] }) {
                                         }
                                         captionLayout="dropdown"
                                         onSelect={(date) => {
-                                            eventForm.setData(
+                                            form.setData(
                                                 'end',
                                                 date
                                                     ? format(date, 'yyyy-MM-dd')
@@ -332,7 +352,7 @@ export default function EventForm({ users }: { users: User[] }) {
                                 type="time"
                                 id="time-picker-optional"
                                 step="1"
-                                disabled={!eventForm.data.end}
+                                disabled={!form.data.end}
                                 defaultValue={endTime}
                                 onChange={(e) => setEndTme(e.target.value)}
                                 className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
@@ -346,22 +366,17 @@ export default function EventForm({ users }: { users: User[] }) {
                     <Button
                         variant="outline"
                         type="button"
-                        onClick={() => eventForm.reset()}
-                        disabled={eventForm.processing}
+                        onClick={() => form.reset()}
+                        disabled={form.processing}
                     >
                         Discard
                     </Button>
                     <Button
                         type="submit"
-                        disabled={
-                            eventForm.processing ||
-                            (eventForm.data?.leave_type === 'Undertime' &&
-                                (!eventForm.data?.start ||
-                                    !eventForm.data?.end))
-                        }
+                        disabled={isFormIncomplete}
                         className="bg-sky-700 text-white hover:bg-sky-800"
                     >
-                        {eventForm.processing ?? <Spinner />}
+                        {form.processing ?? <Spinner />}
                         File Event
                     </Button>
                 </div>

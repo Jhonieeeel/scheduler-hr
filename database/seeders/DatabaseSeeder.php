@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
                 'leave_type' => "Vacation Leave",
                 'event_type' => 'allocated',
                 'time' => 5.584,
-                'start' => '2023-01-31 00:00:00',
+                'start' => '2023-01-01 00:00:00',
                 'end' => '2023-01-31 00:00:00'
             ],
              [
@@ -35,7 +35,7 @@ class DatabaseSeeder extends Seeder
                 'leave_type' => "Sick Leave",
                 'event_type' => 'allocated',
                 'time' => 10.792,
-                'start' => '2023-01-31 00:00:00',
+                'start' => '2023-01-01 00:00:00',
                 'end' => '2023-01-31 00:00:00'
             ],
             [
@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
                 'leave_type' => "Force Leave",
                 'event_type' => 'allocated',
                 'time' => 5,
-                'start' => '2023-01-31 00:00:00',
+                'start' => '2023-01-01 00:00:00',
                 'end' => '2023-01-31 00:00:00'
             ],
             [
@@ -51,7 +51,7 @@ class DatabaseSeeder extends Seeder
                 'leave_type' => "Special Privilege Leave",
                 'event_type' => 'allocated',
                 'time' => 3,
-                'start' => '2023-01-31 00:00:00',
+                'start' => '2023-01-01 00:00:00',
                 'end' => '2023-01-31 00:00:00'
             ],
 

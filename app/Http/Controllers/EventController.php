@@ -28,11 +28,15 @@ class EventController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(?Request $request)
     {
         $users = User::select(['id', 'name'])->get();
 
-        return Inertia::render("Leave/LeaveIndex", ['users' => $users]);
+        return inertia('Leave/LeaveIndex', [
+            'users'    => $users,
+            'year'  => $request?->query('year', now()->year),
+            'month' => $request?->query('month', now()->month),
+        ]);
     }
 
     /**
@@ -48,10 +52,20 @@ class EventController extends Controller
      */
     public function store(EventData $eventData)
     {
+        // check if not UT or T then check the balance for LEAVE
+        if ($eventData->leave_type !== "Undertime" && $eventData->leave_type !== "Tardiness") {
+            Event::checkBalance($eventData);
+        }
 
+        // niya create
+        Event::create($eventData->toArray());
 
-        $eventData = Event::create($eventData->toArray());
-        return to_route("leave.index")->with('message', 'Event Created Successfully!');
+        $date = Carbon::parse($eventData->start);
+
+        return to_route('leave.index', [
+            'year' => $date->year,
+            'month' => $date->month
+        ])->with('message', 'Event Created Successfully!');
     }
 
     /**
@@ -84,6 +98,9 @@ class EventController extends Controller
     public function destroy(Event $event)
     {
         $event->delete();
-        return to_route('leave.index')->with('message', 'Event Deleted Successfully');
+        return to_route('leave.index', [
+            'year' => Carbon::parse($event->start)->year,
+            'month' => Carbon::parse($event->start)->month,
+        ])->with('message', 'Event Deleted Successfully');
     }
 }

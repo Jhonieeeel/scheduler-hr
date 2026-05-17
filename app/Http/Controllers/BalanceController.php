@@ -65,7 +65,7 @@ class BalanceController extends Controller
                 ->exists();
 
             if ($events) {
-                return back()->withErrors([ 'message' => "Accrual for {$start->format('F Y')} already exists."]);
+                return back()->withErrors([ 'accrual' => "Accrual for {$start->format('F Y')} already exists."]);
             }
 
             $events = Event::create([
@@ -78,7 +78,11 @@ class BalanceController extends Controller
             ]);
         }
 
-        return to_route("balance.show", $eventData->user_id);
+        return to_route("balance.show", [
+            'user' => $eventData->user_id,
+            'm' => $start->month,
+            'y' => $start->year,
+        ]);
     }
 
     /**
@@ -99,8 +103,6 @@ class BalanceController extends Controller
                 ->whereYear('start', request('year'));
             })
             ->get();
-
-
 
         $balances = Event::calculateBalance($currentEvents, $previousEvents ?? []);
 
@@ -130,8 +132,16 @@ class BalanceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(EventData $eventData)
     {
-        //
+        Event::find($eventData->id)?->delete();
+
+        $date = Carbon::parse($eventData->start);
+
+        return to_route("balance.show", [
+            'user' => $eventData->user_id,
+            'month' => $date->month,
+            'year' => $date->year,
+        ]);
     }
 }

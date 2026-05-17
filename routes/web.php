@@ -21,11 +21,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('balance', [BalanceController::class, 'index'])->name('balance.index');
     Route::get('balance/{user}', [BalanceController::class, 'show'])->name('balance.show');
     Route::post("balance", [BalanceController::class, 'store'])->name('balance.store');
+    Route::delete("balance/{event}", [BalanceController::class, 'destroy'])->name('balance.destroy');
 
     // leave - event
     Route::get('leave', [EventController::class, 'index'])->name('leave.index');
     Route::post('leave', [EventController::class, 'store'])->name('leave.store');
-    Route::delete('leave', [EventController::class,'destroy'])->name('leave.destroy');
+    Route::delete('leave/{event}', [EventController::class,'destroy'])->name('leave.destroy');
 });
 
 require __DIR__.'/settings.php';
