@@ -44,44 +44,74 @@ class BalanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(EventData $eventData)
-    {
+    public function store(EventData $eventData) {
         $start = Carbon::parse($eventData->start)
             ->addMonthNoOverflow()
             ->startOfMonth();
 
-        $end = Carbon::parse($eventData->end)
+        $end = Carbon::parse($eventData->start)
             ->addMonthNoOverflow()
-            ->startOfMonth();
+            ->endOfMonth();
 
         $types = ['Vacation Leave', 'Sick Leave'];
 
         foreach ($types as $type) {
-            $events = Event::where('user_id', $eventData->user_id)
+            $exists = Event::where('user_id', $eventData->user_id)
                 ->where('leave_type', $type)
                 ->where('event_type', 'allocated')
                 ->whereYear('start', $start->year)
                 ->whereMonth('start', $start->month)
                 ->exists();
 
-            if ($events) {
-                return back()->withErrors([ 'accrual' => "Accrual for {$start->format('F Y')} already exists."]);
+            if ($exists) {
+                return back()->withErrors(['accrual' => "Accrual for {$start->format('F Y')} already exists."]);
             }
 
-            $events = Event::create([
+            if ($start->month === 1) {
+                $december = Carbon::parse($start)->subMonth();
+
+                $decemberEvents = Event::where('user_id', $eventData->user_id)
+                    ->whereYear('start', $december->year)
+                    ->whereMonth('start', $december->month)
+                    ->get();
+
+                $previousEvents = Event::where('user_id', $eventData->user_id)
+                    ->whereMonth('start', '<', $december->month)
+                    ->whereYear('start', $december->year)
+                    ->get();
+
+                $balances = Event::calculateBalance($decemberEvents, $previousEvents);
+
+                $other_leave_types = ['Vacation Leave', 'Sick Leave', 'Force Leave', 'Wellness Leave', 'Special Privilege Leave'];
+
+                $decemberBalance = collect($balances)->firstWhere('leave_type', $type);
+
+                $newBalance = match() {
+                    'Vacation Leave' => $decemberBalance['remaining']
+                }
+
+                $time = $decemberBalance['remaining'] ?? 1.25;
+            } else if ($type === "Force Leave" || ($type === "Wellness Leave") || ($type === "Special Privilege Leave")) {
+                continue;
+            }
+            else {
+                $time = 1.25;
+            }
+
+            Event::create([
                 'user_id'    => $eventData->user_id,
                 'leave_type' => $type,
                 'event_type' => 'allocated',
-                'time'       => 1.25,
+                'time'       => $time,
                 'start'      => $start,
                 'end'        => $end,
             ]);
         }
 
-        return to_route("balance.show", [
+        return to_route('balance.show', [
             'user' => $eventData->user_id,
-            'm' => $start->month,
-            'y' => $start->year,
+            'm'    => $start->month,
+            'y'    => $start->year,
         ]);
     }
 
@@ -106,11 +136,20 @@ class BalanceController extends Controller
 
         $balances = Event::calculateBalance($currentEvents, $previousEvents ?? []);
 
-        return Inertia::render('Balance/UserBalance', [
+        $data = [
             'user'     => $user->only('id', 'name'),
             'balances' => $balances,
             'events'   => EventData::collect($currentEvents),
-        ]);
+            'm' => request('m'),
+            'y' => request('y')
+        ];
+
+        if (request()->wantsJson()) {
+            return response()->json($data);
+        }
+
+
+        return Inertia::render('Balance/UserBalance', $data);
     }
 
     /**

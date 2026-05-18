@@ -13,15 +13,18 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Spinner } from '@/components/ui/spinner';
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
+    isLoading: boolean;
 }
 
 export function BalanceTable<TData, TValue>({
     columns,
     data,
+    isLoading,
 }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -52,7 +55,7 @@ export function BalanceTable<TData, TValue>({
                     ))}
                 </TableHeader>
                 <TableBody>
-                    {table.getRowModel().rows?.length ? (
+                    {table && table.getRowModel().rows?.length ? (
                         table.getRowModel().rows.map((row) => (
                             <TableRow
                                 key={row.id}
@@ -74,7 +77,11 @@ export function BalanceTable<TData, TValue>({
                                 colSpan={columns.length}
                                 className="mx-auto h-24 space-y-2 text-center"
                             >
-                                <span className="block">No results.</span>
+                                {isLoading ? (
+                                    <Spinner />
+                                ) : (
+                                    <span className="block">No results.</span>
+                                )}
                             </TableCell>
                         </TableRow>
                     )}

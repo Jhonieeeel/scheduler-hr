@@ -15,6 +15,17 @@ export async function fetchEvents(page: number, month: string, year: string) {
     return res.data;
 }
 
+export async function fetchUserBalance(
+    user_id: number,
+    month: string,
+    year: string,
+) {
+    const res = await axios.get(`/balance/${user_id}`, {
+        params: { month, year },
+    });
+    return res.data;
+}
+
 const startYear = 2023;
 const endYear = new Date().getFullYear() + 1;
 

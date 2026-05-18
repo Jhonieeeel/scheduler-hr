@@ -36,11 +36,23 @@ class Event extends Model
     // god model
     public static function checkFL(float $allocated, float $filed): void
     {
-        if ($filed >= $allocated) {
+        if ($filed > $allocated) {
             throw ValidationException::withMessages([
                 'leave_type' => 'Not enough balance for Force Leave.',
             ]);
         }
+    }
+
+    public static function checkVL(float $allocated, float $filed): void {
+
+    }
+
+    public static function checkWL(float $allocated, float $filed) : void {
+
+    }
+
+    public static function checkSPL(float $allocated, float $filed): void {
+
     }
 
     public static function checkBalance(EventData $eventData): void {

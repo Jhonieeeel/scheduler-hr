@@ -54,6 +54,8 @@ export default function form({
     const [startTime, setStartTime] = useState<string>('08:00:00');
     const [endTime, setEndTme] = useState<string>('08:00:00');
 
+    const [selectedUser, setSelectedUser] = useState<string>('');
+
     const queryClient = useQueryClient();
 
     function invalidateQuery() {
@@ -87,9 +89,9 @@ export default function form({
         form.submit(leave.store(), {
             onSuccess: () => {
                 form.reset();
-                form.setData('user_id', 0);
                 setStartTime('08:00:00');
                 setEndTme('08:00:00');
+                setSelectedUser('');
                 invalidateQuery();
             },
         });
@@ -101,8 +103,6 @@ export default function form({
         (form.data.leave_type === 'Undertime' &&
             (!form.data.start || !form.data.end));
 
-    console.log(form.errors.leave_type);
-
     return (
         <div className="space-y-5 rounded-xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <form onSubmit={handleSubmit}>
@@ -111,10 +111,11 @@ export default function form({
                     <div className="space-y-1.5">
                         <Label htmlFor="employee">Employee</Label>
                         <Combobox
+                            value={selectedUser}
                             items={users}
                             onValueChange={(val) => {
+                                setSelectedUser(val);
                                 const user = users.find((u) => u.name === val);
-
                                 if (user) form.setData('user_id', user.id);
                             }}
                         >

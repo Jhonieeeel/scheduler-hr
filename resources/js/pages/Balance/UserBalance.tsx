@@ -14,15 +14,16 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import balance from '@/routes/balance';
+import leave from '@/routes/leave';
 import { CurrentBalance, EventData, EventForm, User } from '@/types';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { addMonths, format, parseISO } from 'date-fns';
 import { Calendar, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { months, years } from '../Hook/BalanceData';
+import { useState } from 'react';
+import { fetchUserBalance, months, years } from '../Hook/BalanceData';
 import { balanceColumns } from './Table/BalanceColumns';
 import { BalanceTable } from './Table/BalanceTable';
-import leave from '@/routes/leave';
 
 type PageProps = {
     balances: CurrentBalance;
@@ -51,32 +52,46 @@ export default function UserBalance() {
         end: '',
     });
 
-    useEffect(() => {
-        router.get(
-            `/balance/${user.id}`,
-            { month, year },
-            { preserveState: true, preserveScroll: true },
-        );
-    }, [month, year]);
+    const { data: userBalance, isLoading } = useQuery({
+        queryKey: ['balance', user.id, month, year],
+        queryFn: () => fetchUserBalance(user.id, month, year),
+        initialData: { user, balances, events },
+    });
+
+    const queryClient = useQueryClient();
 
     function handleSubmit(e) {
         e.preventDefault();
 
         const newData = {
             ...eventForm.data,
-            start: events[0]?.start,
-            end: events[0]?.end,
+            start: userBalance.events[0]?.start,
+            end: userBalance.events[0]?.end,
         };
 
         eventForm.setData(newData);
         eventForm.submit(balance.store(), {
-            onSuccess: () => eventForm.reset(),
+            onSuccess: () => {
+                eventForm.reset();
+
+                const date = parseISO(userBalance.events[0].start);
+                const next = addMonths(date, 1);
+
+                setMonth(format(next, 'M'));
+                setYear(format(next, 'yyyy'));
+
+                queryClient.invalidateQueries({
+                    queryKey: ['balance', user.id],
+                });
+            },
         });
     }
 
     function renderAccrualButton() {
-        if (events.length > 1) {
-            const date = parseISO(events?.[0].start);
+        if (!userBalance?.events?.length) return;
+
+        if (userBalance?.events?.length > 0) {
+            const date = parseISO(userBalance.events[0].start);
             const nextMonth = format(addMonths(date, 1), 'MMM');
 
             return (
@@ -119,7 +134,8 @@ export default function UserBalance() {
                             </Button>
 
                             <span className="min-w-30 text-center text-sm text-foreground">
-                                {months[Number(month) - 1]?.name} {year}
+                                {month && months[Number(month) - 1]?.name}{' '}
+                                {year && year}
                             </span>
 
                             <Button
@@ -155,7 +171,7 @@ export default function UserBalance() {
 
                         {renderAccrualButton()}
 
-                        {events.length > 1 && (
+                        {userBalance.events.length > 1 && (
                             <div className="py-4">
                                 <Link href={leave.index()}>
                                     <Button className="rounded-md border border-sky-700 bg-sky-50 px-3 py-1.5 pt-2 text-sm font-medium text-sky-700 transition-colors hover:bg-sky-700 hover:text-white dark:border-sky-600 dark:bg-sky-950 dark:text-sky-400 dark:hover:bg-sky-700 dark:hover:text-white">
@@ -270,7 +286,7 @@ export default function UserBalance() {
 
                 {/* Balance cards */}
                 <div className="grid grid-cols-5 gap-4">
-                    {balances.map((data, index) => (
+                    {userBalance?.balances?.map((data, index) => (
                         <Card
                             key={index}
                             className="mx-auto w-full max-w-sm border-sky-100 dark:border-sky-900"
@@ -315,7 +331,11 @@ export default function UserBalance() {
 
                 {/* Events table */}
                 <div>
-                    <BalanceTable data={events} columns={balanceColumns} />
+                    <BalanceTable
+                        isLoading={isLoading}
+                        data={userBalance.events}
+                        columns={balanceColumns}
+                    />
                 </div>
             </div>
         </div>
